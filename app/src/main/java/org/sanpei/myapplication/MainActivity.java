@@ -31,6 +31,8 @@ import android.widget.ListView;
 import android.widget.Toast;
 
 import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 
 /*
@@ -43,7 +45,7 @@ import java.util.Set;
  *     receive broadcast receiver --> and redrow
  *  //1. printout Bluetooth paring device name
  *
- *  2. use vector design drawables (http://qiita.com/konifar/items/bf581b8f23dea7b30f85) (or with newstyle)
+ *  // 2. use vector design drawables (http://qiita.com/konifar/items/bf581b8f23dea7b30f85) (or with newstyle)
  *     https://design.google.com/icons/
  *     wifi network wifi
  *  3. clean up code
@@ -213,7 +215,9 @@ public class MainActivity extends AppCompatActivity {
         view.setBackgroundColor(Color.LTGRAY);
     }
 
-    private ArrayAdapter<String> setAdapter() {
+    private ImageArrayAdapter setAdapter() {
+        List<ListItem> list = new ArrayList<ListItem>();
+
         String locationStatus = getLocationStatus();
         String locationString;
         if (locationStatus != "") {
@@ -234,23 +238,63 @@ public class MainActivity extends AppCompatActivity {
         } else {
             wifiString = "Wi-Fi: Disabled";
         }
-        BluetoothAdapter ba = BluetoothAdapter.getDefaultAdapter();
-        Set<BluetoothDevice> btDevices = ba.getBondedDevices();
         String btDevList = "";
-        for (BluetoothDevice device : btDevices) {
-            if (device.getBondState() == BluetoothDevice.BOND_BONDING ||
-                    device.getBondState() == BluetoothDevice.BOND_BONDED) {
-                btDevList += ": " + device.getName();
+        if (true) {
+            BluetoothAdapter ba = BluetoothAdapter.getDefaultAdapter();
+            Set<BluetoothDevice> btDevices = ba.getBondedDevices();
+            for (BluetoothDevice device : btDevices) {
+                if (device.getBondState() == BluetoothDevice.BOND_BONDING ||
+                        device.getBondState() == BluetoothDevice.BOND_BONDED) {
+                    btDevList += ": " + device.getName();
+                }
             }
         }
 
         String screenSaverTimeoutString;
         screenSaverTimeoutString = "Screen Saver Timeout: " + String.valueOf(getScreenSaverStatus() / 60 / 1000) + "min";
 
-        String[] members = {wifiString, "NFC", locationString, "Bluetooth" + btDevList,
-                "Tethering", screenSaverTimeoutString, "Mobile Data connection", "Battery Saver"};
-        ArrayAdapter<String> adapter = new ArrayAdapter<String>(this,
-                android.R.layout.simple_expandable_list_item_1, members) {
+        for (int i = 1; i <= 8; i++) {
+            ListItem item = new ListItem();
+            //item.setImageId(R.mipmap.ic_launcher);
+            switch (i) {
+                case 1:
+                    item.setText(wifiString);
+                    item.setImageId(R.drawable.ic_network_wifi_black_24px);
+                    break;
+                case 2:
+                    item.setText("NFC");
+                    item.setImageId(R.drawable.ic_nfc_black_24px);
+                    break;
+                case 3:
+                    item.setText(locationStatus);
+                    item.setImageId(R.drawable.ic_gps_fixed_black_24px);
+                    break;
+                case 4:
+                    item.setText("Bluetooth" + btDevList);
+                    item.setImageId(R.drawable.ic_bluetooth_black_24px);
+                    break;
+                case 5:
+                    item.setText("Tethering");
+                    item.setImageId(R.drawable.ic_wifi_tethering_black_24px);
+                    break;
+                case 6:
+                    item.setText(screenSaverTimeoutString);
+                    item.setImageId(R.drawable.ic_screen_lock_portrait_black_24px);
+                    break;
+                case 7:
+                    item.setText("Mobile Data connection");
+                    item.setImageId(R.drawable.ic_network_cell_black_24px);
+                    break;
+                case 8:
+                    item.setText("To System Setting");
+                    item.setImageId(R.drawable.ic_settings_black_24px);
+                    break;
+            }
+            list.add(item);
+        }
+
+        ImageArrayAdapter adapter =
+                new ImageArrayAdapter(this, R.layout.list_view_image_item, list) {
             @Override
             public View getView(int position, View convertView,
                                 ViewGroup parent) {
@@ -322,13 +366,21 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
 //        setContentView(R.layout.activity_main);
 
+        List<ListItem> list = new ArrayList<ListItem>();
+
         getDeviceStatus();
 
         setContentView(R.layout.activity_main);
 
-        lv = (ListView) findViewById(R.id.listView1);
+        //lv = (ListView) findViewById(R.id.listView1);
+        //lv.setAdapter(setAdapter());
 
-        lv.setAdapter(setAdapter());
+        // adapterのインスタンスを作成
+        ImageArrayAdapter adapter =
+                new ImageArrayAdapter(this, R.layout.list_view_image_item, list);
+
+        lv = (ListView) findViewById(R.id.listView1);
+        lv.setAdapter(adapter);
 
         //リスト項目がクリックされた時の処理
         lv.setOnItemClickListener(new AdapterView.OnItemClickListener() {
@@ -336,8 +388,7 @@ public class MainActivity extends AppCompatActivity {
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 ListView listView = (ListView) parent;
 
-                String item = (String) listView.getItemAtPosition(position);
-                if (position == 1) { // NFC
+                 if (position == 1) { // NFC
                     // http://stackoverflow.com/questions/5945100/android-changing-nfc-settings-on-off-programmatically
 //                        Toast.makeText(getApplicationContext(), "Please activate NFC and press Back to return to the application!", Toast.LENGTH_LONG).show();
                     startActivity(new Intent(Settings.ACTION_WIRELESS_SETTINGS));

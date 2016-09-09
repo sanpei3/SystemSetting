@@ -6,10 +6,11 @@ android {
 
     defaultConfig {
         applicationId "org.sanpei.myapplication"
-        minSdkVersion 14     // as Android 4.0
+        minSdkVersion 23     // as Android 4.0
         targetSdkVersion 23  // as Android 6.0
         versionCode 1
         versionName "1.0"
+        vectorDrawables.useSupportLibrary = true
     }
     buildTypes {
         release {
