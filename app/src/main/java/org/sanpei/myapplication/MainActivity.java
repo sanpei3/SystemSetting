@@ -1,28 +1,26 @@
 package org.sanpei.myapplication;
 
 import android.annotation.TargetApi;
-import android.app.ActionBar;
-import android.app.Activity;
 import android.app.Service;
 import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothDevice;
+import android.content.BroadcastReceiver;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.graphics.Color;
-import android.location.Criteria;
 import android.location.LocationManager;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
-import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.nfc.NfcAdapter;
 import android.nfc.NfcManager;
 import android.os.Build;
-import android.preference.ListPreference;
 import android.provider.Settings;
 import android.os.Bundle;
-import android.support.v7.app.ActionBarActivity;
+import android.support.v7.app.AppCompatActivity;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -30,12 +28,28 @@ import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import java.lang.reflect.Method;
+import java.util.Set;
 
-public class MainActivity extends ActionBarActivity {
+/*
+ * TODO
+ *  // -1. change minsdk as Android 4.0 or 4.1 or 4.4
+ *  // 0. fix Wi-Fi enable/disable button.(currently OK?) Wi-Fi Matic effect?
+ *
+ *  //0. change default back ground color for Tethering and screen saver(because sometime use that button)
+ *  //1. Handle broadcast from Wi-Fi enable disable and also Tethering, Bluetooth, NFC
+ *     receive broadcast receiver --> and redrow
+ *  //1. printout Bluetooth paring device name
+ *
+ *  2. use vector design drawables (http://qiita.com/konifar/items/bf581b8f23dea7b30f85) (or with newstyle)
+ *     https://design.google.com/icons/
+ *     wifi network wifi
+ *  3. clean up code
+ *  4. use new style(相対的な配置)--> maybe at first create sample app
+ */
+public class MainActivity extends AppCompatActivity {
 
     private boolean mDebug = false;
     ListView lv;
@@ -65,11 +79,7 @@ public class MainActivity extends ActionBarActivity {
     public boolean getNfcStatus() {
         NfcManager manager = (NfcManager) getSystemService(Context.NFC_SERVICE);
         NfcAdapter adapter = manager.getDefaultAdapter();
-        if (adapter != null && adapter.isEnabled()) {
-            return true;
-        } else {
-            return false;
-        }
+        return adapter != null && adapter.isEnabled();
     }
 
     public String getLocationStatus() {
@@ -78,7 +88,7 @@ public class MainActivity extends ActionBarActivity {
         String result = "";
 
         if (locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
-            result = result +"GPS";
+            result = result + "GPS";
         }
         if (locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)) {
             if (result != "") {
@@ -91,17 +101,19 @@ public class MainActivity extends ActionBarActivity {
     }
 
     public boolean getBluetoothStatus() {
-    BluetoothAdapter Bt = BluetoothAdapter.getDefaultAdapter();
-
-        return Bt.isEnabled();
-
+        BluetoothAdapter Bt = BluetoothAdapter.getDefaultAdapter();
+        if (Bt != null) {
+            return Bt.isEnabled();
+        } else {
+            return false;
+        }
     }
 
     public boolean getTetheringStatus() {
         try {
             WifiManager wifi = (WifiManager) getSystemService(Context.WIFI_SERVICE);
             Method method = wifi.getClass().getMethod("isWifiApEnabled");
-            return  ("true".equals(method.invoke(wifi).toString()));
+            return ("true".equals(method.invoke(wifi).toString()));
         } catch (Exception e) {
             e.printStackTrace();
             return false;
@@ -112,11 +124,7 @@ public class MainActivity extends ActionBarActivity {
         try {
             ConnectivityManager cm = (ConnectivityManager) this.getSystemService(CONNECTIVITY_SERVICE);
             NetworkInfo.State state = cm.getNetworkInfo(ConnectivityManager.TYPE_MOBILE).getState();
-            if (state == NetworkInfo.State.DISCONNECTED || state == NetworkInfo.State.UNKNOWN) {
-                return false;
-            } else {
-                return true;
-            }
+            return !(state == NetworkInfo.State.DISCONNECTED || state == NetworkInfo.State.UNKNOWN);
         } catch (Exception e) {
             return false;
         }
@@ -156,7 +164,7 @@ public class MainActivity extends ActionBarActivity {
          */
         String locationStatus = getLocationStatus();
         if (locationStatus != "Wi-Fi") {
-            toastWithoutDebugOption("Location("+locationStatus+") Enabled");
+            toastWithoutDebugOption("Location(" + locationStatus + ") Enabled");
         } else {
             toastWithDebugOption("Location Disabled");
         }
@@ -173,7 +181,7 @@ public class MainActivity extends ActionBarActivity {
          */
 
         if (getTetheringStatus()) {
-                toastWithoutDebugOption("Tethering Enabled");
+            toastWithoutDebugOption("Tethering Enabled");
         } else {
             toastWithDebugOption("Tethering Disabled");
         }
@@ -198,8 +206,9 @@ public class MainActivity extends ActionBarActivity {
     }
 
     private void setBackgroundColorEnable(View view) {
-        view.setBackgroundColor(Color.rgb(255,128,0));
+        view.setBackgroundColor(Color.rgb(255, 128, 0));
     }
+
     private void setBackgroundColorDisbable(View view) {
         view.setBackgroundColor(Color.LTGRAY);
     }
@@ -208,7 +217,7 @@ public class MainActivity extends ActionBarActivity {
         String locationStatus = getLocationStatus();
         String locationString;
         if (locationStatus != "") {
-            locationString = "Location("+locationStatus+") Enabled";
+            locationString = "Location(" + locationStatus + ") Enabled";
         } else {
             locationString = "Location: Disabled";
         }
@@ -217,15 +226,28 @@ public class MainActivity extends ActionBarActivity {
         if (getWifiStatus()) {
             WifiManager wifiManager = (WifiManager) getSystemService(WIFI_SERVICE);
             WifiInfo wifiInfo = wifiManager.getConnectionInfo();
-            wifiString = "Wi-Fi: Enabled" + wifiInfo.getSSID();
+            String ssid = wifiInfo.getSSID();
+            if (ssid == "0x") {
+                ssid = "not connected";
+            }
+            wifiString = "Wi-Fi: Enabled: " + ssid;
         } else {
             wifiString = "Wi-Fi: Disabled";
         }
+        BluetoothAdapter ba = BluetoothAdapter.getDefaultAdapter();
+        Set<BluetoothDevice> btDevices = ba.getBondedDevices();
+        String btDevList = "";
+        for (BluetoothDevice device : btDevices) {
+            if (device.getBondState() == BluetoothDevice.BOND_BONDING ||
+                    device.getBondState() == BluetoothDevice.BOND_BONDED) {
+                btDevList += ": " + device.getName();
+            }
+        }
 
         String screenSaverTimeoutString;
-        screenSaverTimeoutString = "Screen Saver Timeout: "+ String.valueOf(getScreenSaverStatus()/60/1000) + "min";
+        screenSaverTimeoutString = "Screen Saver Timeout: " + String.valueOf(getScreenSaverStatus() / 60 / 1000) + "min";
 
-        String[] members = {wifiString, "NFC", locationString, "Bluetooth",
+        String[] members = {wifiString, "NFC", locationString, "Bluetooth" + btDevList,
                 "Tethering", screenSaverTimeoutString, "Mobile Data connection", "Battery Saver"};
         ArrayAdapter<String> adapter = new ArrayAdapter<String>(this,
                 android.R.layout.simple_expandable_list_item_1, members) {
@@ -253,7 +275,7 @@ public class MainActivity extends ActionBarActivity {
                         setBackgroundColorDisbable(view);
                     }
                 } else if (position == 3) {
-                    if (mBluetoothStatus) {
+                    if (!mBluetoothStatus) {
                         setBackgroundColorEnable(view);
                     } else {
                         setBackgroundColorDisbable(view);
@@ -262,13 +284,13 @@ public class MainActivity extends ActionBarActivity {
                     if (getTetheringStatus()) {
                         setBackgroundColorEnable(view);
                     } else {
-                        setBackgroundColorDisbable(view);
+                        view.setBackgroundColor(Color.parseColor("#a0d8ef"));
                     }
                 } else if (position == 5) {
                     if (getScreenSaverStatus() != expectedScreenSaverTime) {
                         setBackgroundColorEnable(view);
                     } else {
-                        setBackgroundColorDisbable(view);
+                        view.setBackgroundColor(Color.parseColor("#68be8d"));
                     }
                 } else if (position == 6) {
                     if (getMobileDataConnectionStatus()) {
@@ -318,52 +340,55 @@ public class MainActivity extends ActionBarActivity {
                 if (position == 1) { // NFC
                     // http://stackoverflow.com/questions/5945100/android-changing-nfc-settings-on-off-programmatically
 //                        Toast.makeText(getApplicationContext(), "Please activate NFC and press Back to return to the application!", Toast.LENGTH_LONG).show();
-                    startActivity(new Intent(android.provider.Settings.ACTION_WIRELESS_SETTINGS));
+                    startActivity(new Intent(Settings.ACTION_WIRELESS_SETTINGS));
                 } else if (position == 5) { // Screen Saver TImeout
                     startActivity(new Intent(Settings.ACTION_DISPLAY_SETTINGS));
-                } else if (position == 4) { // Tethering
-                    Intent i = new Intent(Intent.ACTION_MAIN);
-                    i.setClassName(
-                            "com.android.settings",
-                            "com.android.settings.TetherSettings");
-                    try {
-                        startActivity(i);
-                    } catch (Exception e) {
-                    }
-                } else if (position == 3) { // Bluetooth
-                    BluetoothAdapter ba = BluetoothAdapter.getDefaultAdapter();
-                    if (getBluetoothStatus()) {
-                        ba.disable();
-                        mBluetoothStatus = false;
-                    } else {
-                        ba.enable();
-                        mBluetoothStatus = true;
+                } else {
+                    if (position == 4) { // Tethering
+                        Intent i = new Intent(Intent.ACTION_MAIN);
+                        i.setClassName(
+                                "com.android.settings",
+                                "com.android.settings.TetherSettings");
+                        try {
+                            startActivity(i);
+                        } catch (Exception e) {
+                            Toast.makeText(getApplicationContext(), "can't start Activity", Toast.LENGTH_SHORT).show();
+                        }
+                    } else if (position == 3) { // Bluetooth
+                        BluetoothAdapter ba = BluetoothAdapter.getDefaultAdapter();
+                        if (getBluetoothStatus()) {
+                            ba.disable();
+                            mBluetoothStatus = false;
+                        } else {
+                            ba.enable();
+                            mBluetoothStatus = true;
 
+                        }
+                        lv.setAdapter(setAdapter());
+                    } else if (position == 2) { // Location
+                        startActivity(new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS));
+                    } else if (position == 6) { // Mobile Data Connection
+                        startActivity(new Intent(Settings.ACTION_AIRPLANE_MODE_SETTINGS));
+                    } else if (position == 0) { // Wi-Fi
+                        WifiManager wifi;
+                        wifi = (WifiManager) getSystemService(WIFI_SERVICE);
+                        if (getWifiStatus()) {
+                            wifi.setWifiEnabled(false);
+                            mWiFiStatus = false;
+                        } else {
+                            wifi.setWifiEnabled(true);
+                            mWiFiStatus = true;
+                        }
+                        lv.setAdapter(setAdapter());
+                    } else if (position == 7) { // Battery Saver
+                        startActivity(new Intent(Settings.ACTION_SETTINGS));
                     }
-                    lv.setAdapter(setAdapter());
-                } else if (position == 2) { // Location
-                    startActivity(new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS));
-                } else if (position == 6) { // Mobile Data Connection
-                    startActivity(new Intent(Settings.ACTION_AIRPLANE_MODE_SETTINGS));
-                } else if (position == 0) { // Wi-Fi
-                    WifiManager wifi;
-                    wifi = (WifiManager)getSystemService(WIFI_SERVICE);
-                    if (getWifiStatus()) {
-                        wifi.setWifiEnabled(false);
-                        mWiFiStatus = false;
-                    } else {
-                        wifi.setWifiEnabled(true);
-                        mWiFiStatus = true;
-                    }
-                    lv.setAdapter(setAdapter());
-                } else if (position == 7) { // Battery Saver
-                    startActivity(new Intent(Settings.ACTION_SETTINGS));
                 }
             }
         });
     }
 
-    private void toastWifiStatus() {
+  private void toastWifiStatus() {
         if (getWifiStatus()) {
             toastWithoutDebugOption("Wi-Fi Enabled");
         } else {
@@ -375,12 +400,12 @@ public class MainActivity extends ActionBarActivity {
     protected void onResume() {
         super.onResume();
         if (false) {
-            if (getNfcStatus() == false
+            if (!getNfcStatus()
                     && getLocationStatus().equals("")
-                    && getBluetoothStatus() == false
-                    && getTetheringStatus() == false
+                    && !getBluetoothStatus()
+                    && !getTetheringStatus()
                     && getScreenSaverStatus() == expectedScreenSaverTime
-                    && getMobileDataConnectionStatus() == false
+                    && !getMobileDataConnectionStatus()
                     ) {
                 toastWifiStatus();
                 finish();
@@ -388,8 +413,37 @@ public class MainActivity extends ActionBarActivity {
         }
         getDeviceStatus();
         lv.setAdapter(setAdapter());
-
+        IntentFilter filter = new IntentFilter();
+        filter.addAction(WifiManager.WIFI_STATE_CHANGED_ACTION);
+        filter.addAction("android.net.conn.TETHER_STATE_CHANGED");
+        filter.addAction(BluetoothDevice.ACTION_FOUND);
+        filter.addAction("android.net.conn.CONNECTIVITY_CHANGE");
+        registerReceiver(mBroadcastReceiver, filter);
     }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        unregisterReceiver(mBroadcastReceiver);
+    }
+    private BroadcastReceiver mBroadcastReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            String action = intent.getAction();
+            if (action.equals(WifiManager.WIFI_STATE_CHANGED_ACTION)
+                    || action.equals("android.net.conn.CONNECTIVITY_CHANGE")) {
+                getDeviceStatus();
+                lv.setAdapter(setAdapter());
+            }
+            if (action.equals("android.net.conn.TETHER_STATE_CHANGED")) {
+                lv.setAdapter(setAdapter());
+            }
+            if (action.equals(BluetoothDevice.ACTION_FOUND)) {
+                lv.setAdapter(setAdapter());
+            }
+
+        }
+    };
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -412,5 +466,4 @@ public class MainActivity extends ActionBarActivity {
 
         return super.onOptionsItemSelected(item);
     }
-
 }
