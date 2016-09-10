@@ -239,8 +239,8 @@ public class MainActivity extends AppCompatActivity {
             wifiString = "Wi-Fi: Disabled";
         }
         String btDevList = "";
-        if (true) {
-            BluetoothAdapter ba = BluetoothAdapter.getDefaultAdapter();
+        BluetoothAdapter ba = BluetoothAdapter.getDefaultAdapter();
+        if (ba != null) {
             Set<BluetoothDevice> btDevices = ba.getBondedDevices();
             for (BluetoothDevice device : btDevices) {
                 if (device.getBondState() == BluetoothDevice.BOND_BONDING ||
@@ -407,13 +407,14 @@ public class MainActivity extends AppCompatActivity {
                         }
                     } else if (position == 3) { // Bluetooth
                         BluetoothAdapter ba = BluetoothAdapter.getDefaultAdapter();
-                        if (getBluetoothStatus()) {
-                            ba.disable();
-                            mBluetoothStatus = false;
-                        } else {
-                            ba.enable();
-                            mBluetoothStatus = true;
-
+                        if (ba != null) {
+                            if (getBluetoothStatus()) {
+                                ba.disable();
+                                mBluetoothStatus = false;
+                            } else {
+                                ba.enable();
+                                mBluetoothStatus = true;
+                            }
                         }
                         lv.setAdapter(setAdapter());
                     } else if (position == 2) { // Location
