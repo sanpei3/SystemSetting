@@ -234,7 +234,13 @@ public class MainActivity extends AppCompatActivity {
             if (ssid == "0x") {
                 ssid = "not connected";
             }
-            wifiString = "Wi-Fi: Enabled: " + ssid;
+            if (wifiInfo.getIpAddress() == 0) {
+                wifiString = "Wi-Fi: Enabled: " + ssid + " : Obtaining IP";
+            } else {
+                int ip_addr_i = wifiInfo.getIpAddress();
+                String ip_addr = ((ip_addr_i >> 0) & 0xFF) + "." + ((ip_addr_i >> 8) & 0xFF) + "." + ((ip_addr_i >> 16) & 0xFF) + "." + ((ip_addr_i >> 24) & 0xFF);
+                wifiString = "Wi-Fi: Enabled: " + ssid + ":" + ip_addr;
+            }
         } else {
             wifiString = "Wi-Fi: Disabled";
         }
@@ -294,10 +300,9 @@ public class MainActivity extends AppCompatActivity {
         }
 
         ImageArrayAdapter adapter =
-                new ImageArrayAdapter(this, R.layout.list_view_image_item, list) {
+            new ImageArrayAdapter(this, R.layout.list_view_image_item, list) {
             @Override
-            public View getView(int position, View convertView,
-                                ViewGroup parent) {
+            public View getView(int position, View convertView, ViewGroup parent) {
                 View view = super.getView(position, convertView, parent);
                 if (position == 0) {
                     if (mWiFiStatus) {
@@ -364,7 +369,6 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-//        setContentView(R.layout.activity_main);
 
         List<ListItem> list = new ArrayList<ListItem>();
 
@@ -372,10 +376,6 @@ public class MainActivity extends AppCompatActivity {
 
         setContentView(R.layout.activity_main);
 
-        //lv = (ListView) findViewById(R.id.listView1);
-        //lv.setAdapter(setAdapter());
-
-        // adapterのインスタンスを作成
         ImageArrayAdapter adapter =
                 new ImageArrayAdapter(this, R.layout.list_view_image_item, list);
 
