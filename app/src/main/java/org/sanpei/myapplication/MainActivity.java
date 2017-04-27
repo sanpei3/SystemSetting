@@ -74,12 +74,12 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public boolean getWifiStatus() {
-        WifiManager wifi = (WifiManager) getSystemService(Context.WIFI_SERVICE);
+        WifiManager wifi = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
         return wifi.isWifiEnabled();
     }
 
     public boolean getNfcStatus() {
-        NfcManager manager = (NfcManager) getSystemService(Context.NFC_SERVICE);
+        NfcManager manager = (NfcManager) getApplicationContext().getSystemService(Context.NFC_SERVICE);
         NfcAdapter adapter = manager.getDefaultAdapter();
         return adapter != null && adapter.isEnabled();
     }
@@ -113,7 +113,7 @@ public class MainActivity extends AppCompatActivity {
 
     public boolean getTetheringStatus() {
         try {
-            WifiManager wifi = (WifiManager) getSystemService(Context.WIFI_SERVICE);
+            WifiManager wifi = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
             Method method = wifi.getClass().getMethod("isWifiApEnabled");
             return ("true".equals(method.invoke(wifi).toString()));
         } catch (Exception e) {
@@ -228,7 +228,7 @@ public class MainActivity extends AppCompatActivity {
 
         String wifiString;
         if (getWifiStatus()) {
-            WifiManager wifiManager = (WifiManager) getSystemService(WIFI_SERVICE);
+            WifiManager wifiManager = (WifiManager) getApplicationContext().getSystemService(WIFI_SERVICE);
             WifiInfo wifiInfo = wifiManager.getConnectionInfo();
             String ssid = wifiInfo.getSSID();
             if (ssid == "0x") {
@@ -423,7 +423,7 @@ public class MainActivity extends AppCompatActivity {
                         startActivity(new Intent(Settings.ACTION_AIRPLANE_MODE_SETTINGS));
                     } else if (position == 0) { // Wi-Fi
                         WifiManager wifi;
-                        wifi = (WifiManager) getSystemService(WIFI_SERVICE);
+                        wifi = (WifiManager) getApplicationContext().getSystemService(WIFI_SERVICE);
                         if (getWifiStatus()) {
                             wifi.setWifiEnabled(false);
                             mWiFiStatus = false;
