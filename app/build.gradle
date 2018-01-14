@@ -1,13 +1,13 @@
 apply plugin: 'com.android.application'
 
 android {
-    compileSdkVersion 24     // as Android 6.0
+    compileSdkVersion 26     // as Android 8.0
     buildToolsVersion '26.0.2'
 
     defaultConfig {
         applicationId "org.sanpei.myapplication"
-        minSdkVersion 23     // as Android 4.0
-        targetSdkVersion 23  // as Android 6.0
+        minSdkVersion 23     // as Android 6.0
+        targetSdkVersion 26  // as Android 8.0
         versionCode 1
         versionName "1.0"
         vectorDrawables.useSupportLibrary = true
@@ -22,5 +22,5 @@ android {
 
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
-    compile 'com.android.support:appcompat-v7:24.2.0'
+    compile 'com.android.support:appcompat-v7:26.0.0'
 }

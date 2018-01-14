@@ -55,7 +55,7 @@ public class MainActivity extends AppCompatActivity {
 
     private boolean mDebug = false;
     ListView lv;
-    private final int expectedScreenSaverTime = 60 * 1000;
+    private final int expectedScreenSaverTime = 30 * 1000;
     private boolean mBluetoothStatus;
     private boolean mWiFiStatus;
 
@@ -391,7 +391,7 @@ public class MainActivity extends AppCompatActivity {
                  if (position == 1) { // NFC
                     // http://stackoverflow.com/questions/5945100/android-changing-nfc-settings-on-off-programmatically
 //                        Toast.makeText(getApplicationContext(), "Please activate NFC and press Back to return to the application!", Toast.LENGTH_LONG).show();
-                    startActivity(new Intent(Settings.ACTION_WIRELESS_SETTINGS));
+                    startActivity(new Intent(Settings.ACTION_NFC_SETTINGS));
                 } else if (position == 5) { // Screen Saver TImeout
                     startActivity(new Intent(Settings.ACTION_DISPLAY_SETTINGS));
                 } else {
